@@ -21,12 +21,6 @@ const UrlFetcher: React.FC = () => {
     const [lastPopUpPostList, setLastPopUpPostList] = useState<Article[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
-    useEffect(() => {
-        if (url) {
-            fetchData(url);
-        }
-    }, [lastPopUpPostList]);
-
     const fetchData = async (url: string) => {
         setIsLoading(true);
         console.log("Crawling data...");
@@ -67,7 +61,7 @@ const UrlFetcher: React.FC = () => {
                 token,
                 picture,
                 href,
-                isSuitable: isSuitableHandler({ deposit: extractNumber(deposit), rent: extractNumber(rent) })
+                isSuitable: !title.includes('همخانه') && !title.includes('همخونه') && isSuitableHandler({ deposit: extractNumber(deposit), rent: extractNumber(rent) })
             };
 
             // Optionally, you can push only if token is not empty to avoid invalid data
@@ -76,24 +70,26 @@ const UrlFetcher: React.FC = () => {
             }
         });
 
-        setIsLoading(false)
-        articleList.length > 0 && setData(articleList);
-        checkForNewPosts(articleList);
-    };
+        setIsLoading(false);
+        if (articleList.length > 0) {
+            setData(articleList);
+            setLastPopUpPostList(prevState => {
+                console.log(prevState);
 
-    const checkForNewPosts = (articleList: Article[]) => {
-        const newArticles = articleList.filter(article =>
-            !lastPopUpPostList.some(lastArticle => lastArticle.token === article.token)
-        );
+                const newArticles = articleList.filter(article => {
+                    return !prevState.some(lastArticle => lastArticle.token === article.token);
+                });
 
-        if (newArticles.length > 0) {
-            setLastPopUpPostList(newArticles);
-            newArticles.forEach(article => showNotification(article));
+                if (newArticles.length > 0) {
+                    newArticles.forEach(article => showNotification(article));
+                }
+
+                return articleList
+            })
         }
-
         setTimeout(() => {
             fetchData(url);
-        }, newArticles.length > 0 ? 15000 : 30000);
+        }, articleList.length > 0 ? 15000 : 15000);
     };
 
     const showNotification = (article: Article) => {
@@ -136,20 +132,18 @@ const UrlFetcher: React.FC = () => {
             </form>
             <div className="article-list">
                 {data.length > 0 && (
-                    <ul>
-                        {data.map((item, index) => (
-                            <a target='_blank' href={item.href} key={index} className="card">
-                                <div className="card-image">
-                                    <img src={item.picture} alt={item.title} />
-                                </div>
-                                <div className="card-content">
-                                    <h2 className="card-title">{item.title}</h2>
-                                    <p className="card-deposit">ودیعه: {formatNumberWithCommas(item.deposit)}</p>
-                                    <p className="card-rent">اجاره: {formatNumberWithCommas(item.rent)}</p>
-                                </div>
-                            </a>
-                        ))}
-                    </ul>
+                    data.map((item, index) => (
+                        <a target='_blank' href={item.href} key={index} className="card">
+                            <div className="card-image">
+                                <img src={item.picture} alt={item.title} />
+                            </div>
+                            <div className="card-content">
+                                <h2 className="card-title">{item.title}</h2>
+                                <p className="card-deposit">ودیعه: {formatNumberWithCommas(item.deposit)}</p>
+                                <p className="card-rent">اجاره: {formatNumberWithCommas(item.rent)}</p>
+                            </div>
+                        </a>
+                    ))
                 )}
             </div>
         </div>
