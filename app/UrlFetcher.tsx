@@ -16,7 +16,7 @@ interface Article {
 }
 
 const UrlFetcher: React.FC = () => {
-    const [url, setUrl] = useState<string>('');
+    const [url, setUrl] = useState<string>('https://divar.ir/s/tehran/rent-apartment/ajudaniye?districts=1028%2C127%2C138%2C139%2C159%2C170%2C173%2C208%2C210%2C286%2C300%2C301%2C302%2C315%2C360%2C42%2C48%2C55%2C56%2C61%2C62%2C63%2C64%2C65%2C658%2C66%2C67%2C68%2C70%2C71%2C72%2C74%2C75%2C78%2C81%2C84%2C85%2C86%2C87%2C88%2C90%2C920%2C922%2C925%2C929%2C930%2C931%2C934%2C938%2C939%2C941%2C95%2C96&size=60-&rooms=2&floor=0-');
     const [data, setData] = useState<Article[]>([]);
     const [lastPopUpPostList, setLastPopUpPostList] = useState<Article[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -72,20 +72,28 @@ const UrlFetcher: React.FC = () => {
 
         setIsLoading(false);
         if (articleList.length > 0) {
+
             setData(articleList);
             setLastPopUpPostList(prevState => {
-                console.log(prevState);
-
                 const newArticles = articleList.filter(article => {
                     return !prevState.some(lastArticle => lastArticle.token === article.token);
                 });
 
+                // Use a Set to track tokens of articles for which notifications have been shown
+                const shownNotifications = new Set<string>();
+
                 if (newArticles.length > 0) {
-                    newArticles.forEach(article => showNotification(article));
+                    newArticles.forEach(article => {
+                        // Check if notification has already been shown for this article
+                        if (!shownNotifications.has(article.token)) {
+                            showNotification(article);
+                            shownNotifications.add(article.token); // Add token to the set
+                        }
+                    });
                 }
 
-                return articleList
-            })
+                return articleList; // Update lastPopUpPostList with the new articleList
+            });
         }
         setTimeout(() => {
             fetchData(url);
@@ -93,6 +101,8 @@ const UrlFetcher: React.FC = () => {
     };
 
     const showNotification = (article: Article) => {
+        console.log(article);
+
         if (article.isSuitable) {
             if (Notification.permission === 'granted') {
                 new Notification(article.title, { body: `ودیعه: ${article.deposit}, اجاره: ${article.rent}` });
@@ -133,7 +143,7 @@ const UrlFetcher: React.FC = () => {
             <div className="article-list">
                 {data.length > 0 && (
                     data.map((item, index) => (
-                        <a target='_blank' href={item.href} key={index} className="card">
+                        <a target='_blank' href={item.href} key={index} className="card" style={{ color: item.isSuitable ? "green" : "red" }}>
                             <div className="card-image">
                                 <img src={item.picture} alt={item.title} />
                             </div>
